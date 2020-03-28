@@ -12,4 +12,4 @@ class TwoSpirals:
         X = np.concatenate((np.array([x1, y1]), np.array([x2, y2])), axis=1).T
         Y = np.concatenate((np.zeros(num, dtype=int), np.ones(num, dtype=int))).reshape(-1, 1)
 
-        return X, Y
+        return X, Y, 2, 2

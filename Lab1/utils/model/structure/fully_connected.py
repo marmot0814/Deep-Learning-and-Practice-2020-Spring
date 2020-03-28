@@ -3,7 +3,7 @@ import numpy as np
 class FullyConnected:
 
     def __init__(self, m, n):
-        self.W = np.random.uniform(-1, 1, (m + 1, n))
+        self.W = np.random.uniform(-1, 1, (m + 1, n)).astype('float128')
 
     def forward(self, X):
         self.X = np.concatenate((

@@ -10,4 +10,4 @@ class XOR:
         
         Y = np.array([1 * (x[0] == x[1]) for x in X]).reshape(-1, 1)
 
-        return X, Y
+        return X, Y, 2, 2
