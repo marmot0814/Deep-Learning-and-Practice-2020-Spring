@@ -1,2 +1,2 @@
-from utils.model.function.loss import *
-from utils.model.function.activation import *
+import utils.model.function.activation
+import utils.model.function.loss

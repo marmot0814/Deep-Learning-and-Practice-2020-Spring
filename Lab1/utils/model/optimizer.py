@@ -7,7 +7,7 @@ class Adam:
         self.decay = decay
         self.beta_1 = beta_1
         self.beta_2 = beta_2
-        self.error = 10
+        self.error = 1e9
 
     def initial(self, layer):
         if hasattr(layer, 'W'):
@@ -34,4 +34,4 @@ class Adam:
             self.lr *= self.decay * (1 - (error - self.error) / error) ** 2
         else:
             self.lr /= self.decay
-        self.error = 0.8 * self.error + 0.2 * error
+        self.error = 0.2 * self.error + 0.8 * error

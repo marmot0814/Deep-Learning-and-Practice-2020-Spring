@@ -1,11 +1,21 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def line_plot(ax, data, title, x_lim, y_lim):
+def line_plot(ax, data, title, y_lim):
+
     ax.clear()
-    ax.plot(data)
+    ax.plot(range(len(data)), data, alpha=0.3, c='b')
+
+    y = data[0]
+    smooth = []
+    for x in data:
+        y = 0.3 * y + 0.7 * x
+        smooth.append(y)
+    ax.plot(range(len(smooth)), smooth, c='b', alpha=0.7)
+
+    ax.plot(range(len(smooth))[::10], smooth[::10], color='orange', marker='o', linestyle='dashed')
     ax.set_title(title)
-    ax.set_xlim(x_lim)
+    ax.set_xlim([0, max(50, len(data))])
     ax.set_ylim(y_lim)
 
 def decision_region(ax, X, Y, network):
@@ -22,7 +32,7 @@ def decision_region(ax, X, Y, network):
 
     Y = np.argmax(Y, axis=1).reshape(-1, 1)
     plt.contourf(xx, yy, Z, alpha=0.3, cmap=plt.cm.jet)
-    plt.scatter(X[:, 0], X[:, 1], c=Y, s=3, cmap=plt.cm.jet)
+    plt.scatter(X[:, 0], X[:, 1], c=Y, s=20, cmap=plt.cm.jet)
     plt.axis('scaled')
 
 

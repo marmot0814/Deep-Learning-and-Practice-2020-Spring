@@ -1,4 +1,7 @@
 import numpy as np
+import matplotlib.pyplot as plt
+
+from utils.data.displayer import line_plot, decision_region
 from utils import *
 
 class Network:
@@ -7,6 +10,16 @@ class Network:
         self.structure = []
         self.errors = []
         self.accuracies = []
+
+        fig = plt.figure(constrained_layout=True)
+        gs = fig.add_gridspec(2, 4)
+
+        self.acc_ax = fig.add_subplot(gs[0, 0:2])
+        self.err_ax = fig.add_subplot(gs[1, 0:2])
+        self.res_ax = fig.add_subplot(gs[0:2, 2:4])
+
+        plt.get_current_fig_manager().full_screen_toggle()
+
 
     def add(self, layer):
         self.structure.append(layer)
@@ -18,34 +31,27 @@ class Network:
         self.loss = loss
 
     def train(self, X, Y, epochs = 10, ACC = None):
-        fig = plt.figure(constrained_layout=True)
-        gs = fig.add_gridspec(2, 4)
-        acc_ax = fig.add_subplot(gs[0, 0:2])
-        err_ax = fig.add_subplot(gs[1, 0:2])
-        res_ax = fig.add_subplot(gs[0:2, 2:4])
         plt.ion()
-        mng = plt.get_current_fig_manager()
-        mng.full_screen_toggle()
+        acc, error = self.test(X, Y)
+        self.optimizer.error = error
+        print (f'epoch #0 - error: {error:.5f}, lr: {self.optimizer.lr:.5f}, acc: {acc * 100:.2f}%')
+
         for epoch in range(epochs):
-            error = 0
             for x, y in zip(X, Y):
                 x = x.reshape(1, -1)
                 y = y.reshape(1, -1)
                 y_hat = self.forward(x)
-                error += np.mean(self.loss.evaluate(y_hat, y))
                 self.backward(self.loss.gradient(y_hat, y))
 
+            
             acc, error = self.test(X, Y)
             self.optimizer.tune(error)
 
             print (f'epoch #{epoch + 1} - error: {error:.5f}, lr: {self.optimizer.lr:.5f}, acc: {acc * 100:.2f}%')
-            self.accuracies.append(acc * 100)
-            line_plot(acc_ax, self.accuracies, "accuracy", [0, epochs], [0, 100])
-            self.errors.append(error)
-            line_plot(err_ax, self.errors, "error", [0, epochs], [0, max(self.errors)])
-
+            line_plot(self.acc_ax, self.accuracies, "accuracy", [0, 100])
+            line_plot(self.err_ax, self.errors, "accuracy", [0, max(self.errors)])
             if epoch % 1 == 0:
-                decision_region(res_ax, X, Y, self)
+                decision_region(self.res_ax, X, Y, self)
 
             if ACC != None and ACC <= acc:
                 break
@@ -55,10 +61,14 @@ class Network:
 
 
     def test(self, X, Y):
+
         Y_hat = self.forward(X)
 
         acc = np.sum(np.argmax(Y, axis=1) == np.argmax(Y_hat, axis=1)) / X.shape[0]
         error = np.mean(self.loss.evaluate(Y_hat, Y))
+
+        self.accuracies.append(acc * 100)
+        self.errors.append(error)
 
         return acc, error
 

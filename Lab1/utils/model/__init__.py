@@ -1,5 +1,5 @@
-from utils.model.network import *
-from utils.model.optimizer import *
-from utils.model.structure import *
-from utils.model.function import *
-from utils.model.network import *
+import utils.model.network
+import utils.model.optimizer
+import utils.model.structure
+import utils.model.function
+import utils.model.network

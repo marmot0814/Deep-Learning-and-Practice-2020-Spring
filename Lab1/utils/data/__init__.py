@@ -1,2 +1,3 @@
-from utils.data.generator import *
-from utils.data.displayer import *
+import utils.data.generator
+import utils.data.displayer
+import utils.data.processor
