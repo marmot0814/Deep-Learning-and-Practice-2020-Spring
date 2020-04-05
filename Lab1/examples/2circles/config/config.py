@@ -18,15 +18,15 @@ dataset_num = 500
 
 # network
 network_structure = [
-    FullyConnected(2, 15),
+    FullyConnected(2, 5),
     ReLu(0.1),
-    FullyConnected(15, 15),
+    FullyConnected(5, 5),
     ReLu(0.1),
-    FullyConnected(15, 2),
+    FullyConnected(5, 2),
     SoftMax()
 ]
 
 # train
 epochs = 30
-optimizer = Adam(0.01, 0.99)
+optimizer = Adam(0.05, 0.99)
 loss = BinaryCrossEntropy()
