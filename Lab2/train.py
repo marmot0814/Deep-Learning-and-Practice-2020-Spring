@@ -16,9 +16,9 @@ class Trainer(object):
         with open('weight/record.json', 'r') as f:
             record = json.load(f)
 
-        accs = np.zeros((len(models) * 2, epoch_size + 1))
+        accs = np.zeros((len(models) * 2, epoch_size))
 
-        for epoch in range(1, epoch_size + 1):
+        for epoch in range(epoch_size):
 
             train_correct, train_loss = [0 for m in models], [0 for m in models]
 
@@ -51,7 +51,7 @@ class Trainer(object):
 
             with torch.no_grad():
 
-                print (f'{epoch}/{epoch_size}')
+                print (f'{epoch + 1}/{epoch_size}')
 
                 test_correct, test_loss = [0 for m in models], [0 for m in models]
 
@@ -115,6 +115,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     models = [
+        EEGNet(nn.ELU, 0.7).to(device),
         EEGNet(nn.ReLU, 0.7).to(device),
         EEGNet(nn.LeakyReLU, 0.7).to(device),
     ]
@@ -125,9 +126,9 @@ def main():
         models = models,
         train_dataloader=train_dataloader,
         test_dataloader=test_dataloader,
-        epoch_size=10,
+        epoch_size=3000,
         criterion=nn.CrossEntropyLoss(),
-        title="plot title"
+        title="Activation function comparision(EEGNet)"
     )
 
 if __name__ == '__main__':
