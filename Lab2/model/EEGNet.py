@@ -43,5 +43,50 @@ class EEGNet(nn.Module):
         x = self.classify(x)
         return x
 
+    def Test(self, dataloader, criterion, device):
+        self.eval()
+        with torch.no_grad():
+            loss, correct = 0, 0
+            for idx, data in enumerate(dataloader):
+                x, y = data
+                inputs = x.to(device)
+                labels = y.to(device).long().view(-1)
+
+                outputs = self.forward(inputs)
+                loss += criterion(outputs, labels)
+
+                correct += (
+                    torch.max(outputs, 1)[1] == labels.long().view(-1)
+                ).sum().item()
+            return loss.item(), correct * 100 / len(dataloader.dataset)
+
+    def Train(self, dataloader, criterion, device):
+        self.train()
+        loss, correct = 0, 0
+        for idx, data in enumerate(dataloader):
+            x, y = data
+            inputs = x.to(device)
+            labels = y.to(device).long().view(-1)
+
+            self.optimizer.zero_grad()
+            outputs = self.forward(inputs)
+            
+            l = criterion(outputs, labels)
+            l.backward()
+
+            loss += l
+            correct += (
+                torch.max(outputs, 1)[1] == labels.long().view(-1)
+            ).sum().item()
+
+            self.optimizer.step()
+        return loss.item(), correct * 100 / len(dataloader.dataset)
+
     def name(self):
         return f'EEGNet-{self.acti().__str__().split("(")[0]}-{self.dropout}'
+
+    def load(self):
+        self.load_state_dict(torch.load('weight/' + self.name()))
+        return self
+
+
