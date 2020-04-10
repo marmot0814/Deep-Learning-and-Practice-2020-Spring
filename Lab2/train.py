@@ -5,15 +5,20 @@ from data.dataloader import dataloader
 from model.EEGNet import EEGNet
 from model.DeepConvNet import DeepConvNet
 import json 
+import matplotlib.pyplot as plt
+import numpy as np
+import datetime
 
 class Trainer(object):
 
-    def train(self, models, train_dataloader, test_dataloader, epoch_size, criterion):
+    def train(self, models, train_dataloader, test_dataloader, epoch_size, criterion, title):
 
         with open('weight/record.json', 'r') as f:
             record = json.load(f)
 
-        for epoch in range(epoch_size):
+        accs = np.zeros((len(models) * 2, epoch_size + 1))
+
+        for epoch in range(1, epoch_size + 1):
 
             train_correct, train_loss = [0 for m in models], [0 for m in models]
 
@@ -46,7 +51,7 @@ class Trainer(object):
 
             with torch.no_grad():
 
-                print (f'{epoch + 1}/{epoch_size}')
+                print (f'{epoch}/{epoch_size}')
 
                 test_correct, test_loss = [0 for m in models], [0 for m in models]
 
@@ -73,12 +78,25 @@ class Trainer(object):
                             torch.save(model.state_dict(), 'weight/' + model.name())
                             with open('weight/record.json', 'w') as f:
                                 f.write(json.dumps(record, indent=2))
+
+                        accs[idx * 2][epoch] = train_correct[idx]*100/len(train_dataloader.dataset)
+                        accs[idx * 2 + 1][epoch] = test_correct[idx]*100/len(test_dataloader.dataset)
                     print ("")
+        self.gen_plot(accs, models, title)
 
 
     def to(self, device):
         self.device = device
         return self
+
+    def gen_plot(self, accs, models, title):
+        plt.xlabel("Epoch")
+        plt.ylabel("Accuracy(%)")
+        for idx, data in enumerate(accs):
+            plt.plot(data, label=models[idx // 2].name() + '_' + ("train" if idx % 2 == 0 else "test"))
+        plt.legend(loc='lower right')
+        plt.title(title)
+        plt.savefig("plot/" + datetime.datetime.now().__str__() + ".png")
 
 def gen_dataset(train_x, train_y, test_x, test_y):
     return [
@@ -107,8 +125,9 @@ def main():
         models = models,
         train_dataloader=train_dataloader,
         test_dataloader=test_dataloader,
-        epoch_size=3000,
-        criterion=nn.CrossEntropyLoss()
+        epoch_size=10,
+        criterion=nn.CrossEntropyLoss(),
+        title="plot title"
     )
 
 if __name__ == '__main__':
