@@ -1,18 +1,17 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import data.dataloader as dataloader
-from torch.utils.data import TensorDataset, DataLoader
+from data.dataloader import dataloader
 from model.EEGNet import EEGNet
 from model.DeepConvNet import DeepConvNet
-
+import json 
 
 class Trainer(object):
 
-    def train(self, models, train_dataset, batch_size, test_dataset, epoch_size, criterion):
+    def train(self, models, train_dataloader, test_dataloader, epoch_size, criterion):
 
-        train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
-        test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset))
+        with open('weight/record.json', 'r') as f:
+            record = json.load(f)
 
         for epoch in range(epoch_size):
 
@@ -67,36 +66,19 @@ class Trainer(object):
 
                         test_loss[idx] += loss
 
-                        print (f'{model.name():30} - train: {train_correct[idx]*100/len(train_dataset):.2f}% / {train_loss[idx]:.2f}, test: {test_correct[idx]*100/len(test_dataset):.2f}% / {test_loss[idx]:.2f}')
+                        print (f'{model.name():30} - train: {train_correct[idx]*100/len(train_dataloader.dataset):.2f}% / {train_loss[idx]:.2f}, test: {test_correct[idx]*100/len(test_dataloader.dataset):.2f}% / {test_loss[idx]:.2f}')
+
+                        if not record.__contains__(model.name()) or test_correct[idx] * 100 / len(test_dataloader.dataset) > record[model.name()]:
+                            record[model.name()] = test_correct[idx] * 100 / len(test_dataloader.dataset)
+                            torch.save(model.state_dict(), 'weight/' + model.name())
+                            with open('weight/record.json', 'w') as f:
+                                f.write(json.dumps(record, indent=2))
                     print ("")
 
 
     def to(self, device):
         self.device = device
         return self
-
-
-
-def main():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    models = [
-        DeepConvNet(nn.ELU, 0.75).to(device),
-        DeepConvNet(nn.ReLU, 0.75).to(device),
-        DeepConvNet(nn.LeakyReLU, 0.75).to(device),
-    ]
-
-    train_dataset, test_dataset = gen_dataset(*dataloader.read_bci_data())
-
-    Trainer().to(device).train(
-        models = models,
-        train_dataset = train_dataset,
-        batch_size=1080,
-        test_dataset = test_dataset,
-        epoch_size=2000,
-        criterion=nn.CrossEntropyLoss()
-    )
-
 
 def gen_dataset(train_x, train_y, test_x, test_y):
     return [
@@ -110,6 +92,24 @@ def gen_dataset(train_x, train_y, test_x, test_y):
         ) for x, y in [(train_x, train_y), (test_x, test_y)]
     ]
 
+
+def main():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    models = [
+        EEGNet(nn.ReLU, 0.7).to(device),
+        EEGNet(nn.LeakyReLU, 0.7).to(device),
+    ]
+
+    train_dataloader, test_dataloader = dataloader()
+
+    Trainer().to(device).train(
+        models = models,
+        train_dataloader=train_dataloader,
+        test_dataloader=test_dataloader,
+        epoch_size=3000,
+        criterion=nn.CrossEntropyLoss()
+    )
 
 if __name__ == '__main__':
     main()

@@ -1,4 +1,6 @@
 import numpy as np
+import torch
+from torch.utils.data import TensorDataset, DataLoader
 
 def read_bci_data():
     S4b_train = np.load('data/S4b_train.npz')
@@ -23,3 +25,23 @@ def read_bci_data():
     test_data[mask] = np.nanmean(test_data)
 
     return train_data, train_label, test_data, test_label
+
+def gen_dataset(train_x, train_y, test_x, test_y):
+    return [
+        TensorDataset(
+            torch.stack(
+                [torch.Tensor(x[i]) for i in range(x.shape[0])]
+            ),
+            torch.stack(
+                [torch.Tensor(y[i:i+1]) for i in range(y.shape[0])]
+            )
+        ) for x, y in [(train_x, train_y), (test_x, test_y)]
+    ]
+
+def dataloader():
+    train_dataset, test_dataset = gen_dataset(*read_bci_data())
+
+    train_dataloader = DataLoader(train_dataset, len(train_dataset))
+    test_dataloader = DataLoader(test_dataset, len(test_dataset))
+
+    return train_dataloader, test_dataloader
