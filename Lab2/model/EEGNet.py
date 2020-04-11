@@ -85,8 +85,8 @@ class EEGNet(nn.Module):
     def name(self):
         return f'EEGNet-{self.acti().__str__().split("(")[0]}-{self.dropout}'
 
-    def load(self):
+    def load(self, device):
         self.load_state_dict(torch.load('weight/' + self.name()))
-        return self
+        return self.to(device)
 
 

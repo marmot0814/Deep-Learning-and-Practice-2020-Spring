@@ -11,8 +11,10 @@ def main():
 
     train_dataloader, test_dataloader = dataloader()
 
-    model = EEGNet(nn.ReLU, 0.7).load().to(device)
+#    model = DeepConvNet(nn.LeakyReLU, 0.4).load(device)
+    model = EEGNet(nn.ReLU, 0.7).load(device)
     loss, accuracy = model.Test(test_dataloader, nn.CrossEntropyLoss(), device)
+    loss, accuracy = model.Test(train_dataloader, nn.CrossEntropyLoss(), device)
     print (loss, accuracy)
     
 

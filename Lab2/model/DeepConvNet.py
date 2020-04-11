@@ -99,3 +99,7 @@ class DeepConvNet(nn.Module):
 
     def name(self):
         return f'DeepConvNet-{self.acti().__str__().split("(")[0]}-{self.dropout}'
+
+    def load(self, device):
+        self.load_state_dict(torch.load('weight/' + self.name()))
+        return self.to(device)
