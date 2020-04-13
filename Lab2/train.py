@@ -11,7 +11,7 @@ import datetime
 
 class Trainer(object):
 
-    def train(self, models, train_dataloader, test_dataloader, epoch_size, criterion, title):
+    def train(self, models, train_dataloader, test_dataloader, epoch_size, criterion, plot_props):
 
         with open('weight/record.json', 'r') as f:
             record = json.load(f)
@@ -37,7 +37,7 @@ class Trainer(object):
                 print (f'{model.name():30} - train: {train_acc:.2f}% / {train_loss:.2f}, test: {test_acc:.2f}% / {test_loss:.2f}')
             print ("")
 
-        self.gen_plot(accs, models, title)
+        self.gen_plot(accs, models, plot_props['title'])
 
     def to(self, device):
         self.device = device
@@ -47,49 +47,36 @@ class Trainer(object):
         plt.xlabel("Epoch")
         plt.ylabel("Accuracy(%)")
         for idx, data in enumerate(accs):
-            plt.plot(data, label=models[idx // 2].name() + '_' + ("train" if idx % 2 == 0 else "test"))
+            plt.plot(data, label=models[idx // 2].name() + '_' + ("train" if idx % 2 == 0 else "test"), c=['r', 'g', 'b', 'y', 'black'][idx // 2], alpha=0.3 + 0.5 * (idx % 2), linewidth=0.5)
+        plt.plot([0, accs.shape[1]], [87, 87], '--', c='black', linewidth=0.5)
+        plt.ylim([65, 105])
         plt.legend(loc='lower right')
         plt.title(title)
-        plt.savefig("plot/" + datetime.datetime.now().__str__() + ".png")
+        plt.savefig("plot/" + datetime.datetime.now().__str__() + ".png", cmap=plt.cm.jet)
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    while True:
-        models = [
-            DeepConvNet(nn.LeakyReLU, 0.3).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.31).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.32).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.33).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.34).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.35).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.36).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.37).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.38).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.39).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.4).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.41).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.42).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.43).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.44).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.45).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.46).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.47).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.48).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.49).to(device),
-            DeepConvNet(nn.LeakyReLU, 0.5).to(device),
-        ]
+    models = [
+        EEGNet(nn.ReLU, 0.1).to(device),
+        EEGNet(nn.ReLU, 0.3).to(device),
+        EEGNet(nn.ReLU, 0.5).to(device),
+        EEGNet(nn.ReLU, 0.7).to(device),
+        EEGNet(nn.ReLU, 0.9).to(device),
+    ]
 
-        train_dataloader, test_dataloader = dataloader()
+    train_dataloader, test_dataloader = dataloader()
 
-        Trainer().to(device).train(
-            models = models,
-            train_dataloader=train_dataloader,
-            test_dataloader=test_dataloader,
-            epoch_size=1000,
-            criterion=nn.CrossEntropyLoss(),
-            title="Activation function comparision(EEGNet)"
-        )
+    Trainer().to(device).train(
+        models = models,
+        train_dataloader=train_dataloader,
+        test_dataloader=test_dataloader,
+        epoch_size=1000,
+        criterion=nn.CrossEntropyLoss(),
+        plot_props={
+            'title': 'Activation function comparision(EEGNet)'
+        }
+    )
 
 if __name__ == '__main__':
     main()
