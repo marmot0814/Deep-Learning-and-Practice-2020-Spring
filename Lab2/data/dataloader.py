@@ -29,12 +29,8 @@ def read_bci_data():
 def gen_dataset(train_x, train_y, test_x, test_y):
     return [
         TensorDataset(
-            torch.stack(
-                [torch.Tensor(x[i]) for i in range(x.shape[0])]
-            ),
-            torch.stack(
-                [torch.Tensor(y[i:i+1]) for i in range(y.shape[0])]
-            )
+            torch.Tensor(x),
+            torch.Tensor(y.reshape(-1, 1))
         ) for x, y in [(train_x, train_y), (test_x, test_y)]
     ]
 
@@ -45,3 +41,6 @@ def dataloader():
     test_dataloader = DataLoader(test_dataset, len(test_dataset))
 
     return train_dataloader, test_dataloader
+
+if __name__ == '__main__':
+    dataloader()

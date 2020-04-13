@@ -12,10 +12,13 @@ def main():
     train_dataloader, test_dataloader = dataloader()
 
 #    model = DeepConvNet(nn.LeakyReLU, 0.4).load(device)
-    model = EEGNet(nn.ReLU, 0.7).load(device)
-    loss, accuracy = model.Test(test_dataloader, nn.CrossEntropyLoss(), device)
-    loss, accuracy = model.Test(train_dataloader, nn.CrossEntropyLoss(), device)
-    print (loss, accuracy)
+    model1 = EEGNet(nn.ReLU, 0.65).load(device)
+    model2 = DeepConvNet(nn.LeakyReLU, 0.4).load(device)
+    loss, accuracy = model1.Test(test_dataloader, nn.CrossEntropyLoss(), device)
+    print (f'{"model":<30} accuracy')
+    print (f'{model1.name():<30} {accuracy:.2f}%')
+    loss, accuracy = model2.Test(test_dataloader, nn.CrossEntropyLoss(), device)
+    print (f'{model2.name():<30} {accuracy:.2f}%')
     
 
 if __name__ == '__main__':
