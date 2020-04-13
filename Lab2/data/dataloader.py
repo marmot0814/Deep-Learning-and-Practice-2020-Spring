@@ -41,3 +41,6 @@ def dataloader():
     test_dataloader = DataLoader(test_dataset, len(test_dataset))
 
     return train_dataloader, test_dataloader
+
+if __name__ == '__main__':
+    dataloader()
