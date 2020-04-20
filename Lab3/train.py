@@ -31,15 +31,12 @@ def train(models, train_loader, test_loader, epoch_size, criterion, device):
                 with open('weight/record.json', 'w') as f:
                     f.write(json.dumps(record, indent=2, sort_keys=True))
 
-        with open('weight/log', 'a+') as f:
-            for model in models:
-                f.write(model.name())
-                f.write("\n")
-            f.write(train_acc.__str__())
-            f.write("\n")
-            f.write(test_acc.__str__())
-            f.write("\n")
-            f.write("\n")
+    for model in models:
+        print (model.name())
+    print (train_acc)
+    print ("")
+    print (test_acc)
+    print ("")
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -67,20 +64,20 @@ def main():
         ]
     )
 
-    while True:
-        models = [
-            ResNet50(device, pretrained=True).load(),
-        ]
+    models = [
+        ResNet50(device, pretrained=False),
+        ResNet50(device, pretrained=True),
+    ]
 
 
-        train(
-            models,
-            train_loader,
-            test_loader,
-            epoch_size=10,
-            criterion=nn.CrossEntropyLoss(),
-            device=device,
-        )
+    train(
+        models,
+        train_loader,
+        test_loader,
+        epoch_size=5,
+        criterion=nn.CrossEntropyLoss(),
+        device=device,
+    )
 
 if __name__ == '__main__':
     main()

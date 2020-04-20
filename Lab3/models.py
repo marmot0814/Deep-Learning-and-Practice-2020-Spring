@@ -107,6 +107,22 @@ class ResNet(nn.Module):
                 bar.update(1)
             return loss.item(), correct * 100 / len(dataloader.dataset)
 
+    def Predict(self, dataloader, device):
+        self.eval()
+        with torch.no_grad():
+            bar = pyprind.ProgPercent(len(dataloader), title=f"{self.name()} - Testing...")
+            result = []
+            for idx, data in enumerate(dataloader):
+                x, y = data
+                inputs = x.to(device).float()
+                labels = y.to(device).long().view(-1)
+
+                outputs = self.forward(inputs)
+
+                result += [x.item() for x in torch.max(outputs, 1)[1]]
+
+                bar.update(1)
+            return result
 
 def ResNet18(device, pretrained=False):
     return ResNet(18, pretrained).to(device)

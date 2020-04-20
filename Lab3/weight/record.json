@@ -1,4 +1,6 @@
 {
+  "ResNet18": 73.35231316725978,
   "ResNet18-pretrained": 82.16370106761566,
+  "ResNet50": 75.0,
   "ResNet50-pretrained": 81.33807829181495
 }
