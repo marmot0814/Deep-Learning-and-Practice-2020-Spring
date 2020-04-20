@@ -1,32 +1,31 @@
 import torch
 from data.dataloader import dataloader
+from torchvision import transforms
 from models import ResNet18, ResNet50
 import pyprind
+import torch.nn as nn
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    test_loader = dataloader(
+        "test",
+        batch_size = 8,
+        arg = [
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225]
+            )
+        ]
+    )
 
-    train_loader, test_loader = dataloader(16)
-    
-    model = ResNet18(device, True).load()
+    loss, acc = ResNet18(device, True).load().Test(test_loader, nn.CrossEntropyLoss(), device)
 
-    model.eval()
-    with torch.no_grad():
-        correct = 0
-        bar = pyprind.ProgPercent(len(test_loader), title="Testing...")
-        for idx, data in enumerate(test_loader):
-            x, y = data
-            inputs = x.to(device).float()
-            labels = y.to(device).long().view(-1)
+    print (f"Test Accuracy: {acc:.2f}%")
 
-            outputs = model(inputs)
-            correct += (
-                torch.max(outputs, 1)[1] == labels.long().view(-1)
-            ).sum().item()
-            bar.update(1)
+    loss, acc = ResNet50(device, True).load().Test(test_loader, nn.CrossEntropyLoss(), device)
 
-    print (correct / len(test_loader.dataset))
-
+    print (f"Test Accuracy: {acc:.2f}%")
 
 
 if __name__ == '__main__':

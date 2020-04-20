@@ -17,13 +17,6 @@ def getData(root, mode):
         label = pd.read_csv(root + 'test_label.csv')
         return np.squeeze(img.values), np.squeeze(label.values)
 
-def scaleRadius(img, scale):
-    x = img[img.shape[0] // 2, :, :].sum(1)
-    r = (x > x.mean() / 10).sum() / 2
-    s = scale * 1.0 / r
-    return cv2.resize(img, (0, 0), fx=s, fy=s)
-
-
 class RetinopathyLoader(data.Dataset):
     def __init__(self, root, mode, arg=None):
         """
@@ -75,28 +68,6 @@ class RetinopathyLoader(data.Dataset):
         label = self.label[index]
         return img, label
 
-def dataloader(batch_size):
-    train_dataset = RetinopathyLoader('./data/', 'train', arg=[
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
-    ])
-    train_loader = DataLoader(
-        train_dataset, 
-        batch_size=batch_size, 
-        num_workers=8, 
-        pin_memory=True,
-        shuffle=True
-    )
-    test_dataset = RetinopathyLoader('./data/', 'test', arg=[
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
-    ])
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=8, pin_memory=True)
-    return train_loader, test_loader
-
-if __name__ == '__main__':
-    d = RetinopathyLoader("./", "train")
-    img, label = d[0]
-    print (img.shape)
-    print (label)
+def dataloader(mode="train", batch_size=8, arg=[]):
+    dataset = RetinopathyLoader('./data/', mode, arg=arg)
+    return DataLoader(dataset, batch_size=batch_size, num_workers=8, pin_memory=True)

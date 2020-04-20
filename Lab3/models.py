@@ -13,10 +13,11 @@ from torch.autograd.function import once_differentiable
 import time
 import functools
 from torch import optim
+import pyprind
 
 
 class ResNet(nn.Module):
-    def __init__(self, num, fc_in, pretrained=False):
+    def __init__(self, num, pretrained=False, lr=1e-4):
         super(ResNet, self).__init__()
 
         self.pretrained = pretrained
@@ -31,10 +32,9 @@ class ResNet(nn.Module):
         self.layer3 = pretrained_model._modules['layer3']
         self.layer4 = pretrained_model._modules['layer4']
         self.avgpool = nn.AdaptiveAvgPool2d(1)
-        self.classify = nn.Linear(fc_in, 5)
+        self.classify = nn.Linear(pretrained_model._modules['fc'].in_features, 5)
 
-        self.optimizer = optim.SGD(self.parameters(), lr=1e-4, momentum = 0.9, weight_decay = 5e-4)
-
+        self.optimizer = optim.SGD(self.parameters(), lr=lr, momentum = 0.9, weight_decay = 5e-4)
 
         del pretrained_model
 
@@ -63,8 +63,53 @@ class ResNet(nn.Module):
         self.load_state_dict(torch.load('weight/' + self.name()))
         return self
 
+    def Train(self, dataloader, criterion, device):
+        self.train()
+        loss, correct = 0, 0
+        bar = pyprind.ProgPercent(len(dataloader), title="{} - Training...: ".format(self.name()))
+        for idx, data in enumerate(dataloader):
+            x, y = data
+            inputs = x.to(device).float()
+            labels = y.to(device).long().view(-1)
+
+            self.optimizer.zero_grad()
+            outputs = self.forward(inputs)
+            
+            t = criterion(outputs, labels)
+            t.backward()
+
+            loss += t
+            self.optimizer.step()
+            correct += (
+                torch.max(outputs, 1)[1] == labels.long().view(-1)
+            ).sum().item()
+
+            bar.update(1)
+
+        return loss.item(), correct * 100 / len(dataloader.dataset)
+
+    def Test(self, dataloader, criterion, device):
+        self.eval()
+        with torch.no_grad():
+            loss, correct = 0, 0
+            bar = pyprind.ProgPercent(len(dataloader), title=f"{self.name()} - Testing...")
+            for idx, data in enumerate(dataloader):
+                x, y = data
+                inputs = x.to(device).float()
+                labels = y.to(device).long().view(-1)
+
+                outputs = self.forward(inputs)
+                loss += criterion(outputs, labels)
+
+                correct += (
+                    torch.max(outputs, 1)[1] == labels.long().view(-1)
+                ).sum().item()
+                bar.update(1)
+            return loss.item(), correct * 100 / len(dataloader.dataset)
+
+
 def ResNet18(device, pretrained=False):
-    return ResNet(18, 512, pretrained).to(device)
+    return ResNet(18, pretrained).to(device)
 
 def ResNet50(device, pretrained=False):
-    return ResNet(50, 2048, pretrained).to(device)
+    return ResNet(50, pretrained).to(device)
