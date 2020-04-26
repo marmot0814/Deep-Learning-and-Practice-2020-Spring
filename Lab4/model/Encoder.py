@@ -1,25 +1,26 @@
-import torch.nn as nn
 import torch
+import torch.nn as nn
 
-class Encoder(nn.Module):
+from config.config import device
 
-    def __init__(self, input_size, embedding_size, hidden_size, num_layers, device):
-        super(Encoder, self).__init__()
+class EncoderRNN(nn.Module):
 
-        self.device = device
-        self.num_layers = num_layers
+    def __init__(self, input_size, hidden_size):
+        super(EncoderRNN, self).__init__()
         self.hidden_size = hidden_size
-        self.embedding = nn.Embedding(input_size, embedding_size).to(device)
-        self.lstm = nn.LSTM(embedding_size, hidden_size, num_layers).to(device)
+        self.embedding = nn.Embedding(input_size, hidden_size)
+        self.lstm = nn.LSTM(hidden_size, hidden_size)
 
-    def forward(self, inputs, hidden):
-        embedded = self.embedding(inputs).view(inputs.size(0), inputs.size(1), -1)
-        outputs, hidden = self.lstm(embedded, hidden)
-        return outputs, hidden
+    def forward(self, input, hidden):
+        embedded = self.embedding(input).view(input.size(0), 1, -1)
+        output, hidden = self.lstm(embedded, hidden)
+        return output, hidden
 
-    def initHidden(self, batch_size):
+    def initHidden(self):
         return (
-            torch.zeros(self.num_layers, batch_size, self.hidden_size, device=self.device),
-            torch.zeros(self.num_layers, batch_size, self.hidden_size, device=self.device)
+            torch.zeros(1, 1, self.hidden_size, device=device),
+            torch.zeros(1, 1, self.hidden_size, device=device)
         )
 
+    def name(self):
+        return f'EncoderRNN-{self.hidden_size}'

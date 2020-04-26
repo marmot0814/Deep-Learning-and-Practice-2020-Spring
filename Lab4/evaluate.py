@@ -1,35 +1,21 @@
-from model.Encoder import Encoder
-from model.Decoder import Decoder
+from dataset.dataloader import DataLoader
+
 from model.Seq2Seq import Seq2Seq
+from model.Encoder import EncoderRNN
+from model.Decoder import DecoderRNN
 
-from dataset.DataHandler import DataHandler
+from config.config import hidden_size, device
 
-from train import Trainer
+from utils.func import compute_bleu
 
-from config import config
+hidden_size = 256
 
+dataloader = DataLoader('dataset/official_test/')
 
-def main():
-    data_handler = DataHandler(config.train_dataset_path)
+model = Seq2Seq(
+    EncoderRNN(len(dataloader.dict.char2idx), hidden_size).to(device),
+    DecoderRNN(hidden_size, len(dataloader.dict.char2idx)).to(device)
+).load()
 
-    encoder = Encoder(
-        data_handler.vocab_size,
-        config.embedding_size,
-        config.hidden_size,
-        config.num_layers,
-        config.device
-    )
-    decoder = Decoder(
-        config.hidden_size,
-        data_handler.vocab_size,
-        config.num_layers,
-        config.device
-    )
-    seq2seq = Seq2Seq(encoder, decoder, config.device)
-    trainer = Trainer(seq2seq, data_handler, config.checkpoint_name)
-    trainer.load_model()
+print (f'Avg Bleu-4: {model.test(dataloader):.2f}%')
 
-    print (trainer.evaluate(["crist", 'c'], 30))
-
-if __name__ == '__main__':
-    main()

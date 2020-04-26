@@ -1,73 +1,68 @@
-from dataset.DataHandler import DataHandler
+import torch.nn as nn
+import time
+import random
+import json
+
+from torch import optim
 
 from model.Seq2Seq import Seq2Seq
-from model.Encoder import Encoder
-from model.Decoder import Decoder
+from model.Encoder import EncoderRNN
+from model.Decoder import DecoderRNN
 
-from config import config
+from dataset.dataloader import DataLoader
 
-import torch
-import torch.nn as nn
-
-class Trainer:
-
-    def __init__(self, model, data_handler, checkpoint_name):
-        self.model = model
-        self.data_handler = data_handler
-        self.checkpoint_name = checkpoint_name
-
-    def train(self, num_epochs, batch_size):
-        optimizer = torch.optim.SGD(self.model.parameters(), lr=0.05)
-        criterion = nn.CrossEntropyLoss()
-        for epoch in range(1, num_epochs + 1):
-            mini_batches = self.data_handler.mini_batches(batch_size)
-            for i, o in mini_batches:
-                ti = self.data_handler.encode(i)
-                to = self.data_handler.encode(o)
-                self.model(ti, to, config.teacher_forcing_ratio, optimizer, criterion)
-                output = self.evaluate(i, 20)
-
-                print (output)
-                print (o)
-            self.save_model()
-
-    def save_model(self):
-        torch.save(self.model.state_dict(), self.checkpoint_name)
-
-    def load_model(self):
-        self.model.load_state_dict(torch.load(self.checkpoint_name))
-
-    def evaluate(self, w, max_length):
-        input = self.data_handler.encode(w)
-        output = self.model.evaluate(input, max_length)
-        output = self.data_handler.decode(output)
-        return output
-
-def main():
-    data_handler = DataHandler(config.train_dataset_path)
-
-    encoder = Encoder(
-        data_handler.vocab_size,
-        config.embedding_size,
-        config.hidden_size,
-        config.num_layers,
-        config.device
-    )
-    decoder = Decoder(
-        config.hidden_size,
-        data_handler.vocab_size,
-        config.num_layers,
-        config.device
-    )
-
-    seq2seq = Seq2Seq(encoder, decoder, config.device)
-
-    trainer = Trainer(seq2seq, data_handler, config.checkpoint_name)
-    trainer.train(250, 1)
-
-    trainer.evaluate(["crist"], 30)
+from config.config import device, hidden_size, teacher_forcing_ratio, MAX_LENGTH
+from utils.func import timeSince, compute_bleu
 
 
+def train(model, dataloader, n_iters, lr, criterion, print_every=100):
+    start = time.time()
+    optimizer = optim.SGD(model.parameters(), lr=lr)
 
-if __name__ == "__main__":
-    main()
+    print_loss_total = 0
+    for iter in range(1, n_iters + 1):
+        optimizer.zero_grad()
+        pair = random.choice(dataloader.train_data)
+        input = dataloader.encode(pair[0])
+        target = dataloader.encode(pair[1])
+
+        loss = 0
+        outputs = model(input, target, random.random() < teacher_forcing_ratio)
+        outputs = outputs.narrow(0, 0, min(target.size(0), outputs.size(0)))
+        for idx, output in enumerate(outputs):
+            loss += criterion(outputs[idx], target[idx])
+
+        loss.backward()
+        optimizer.step()
+
+        print_loss_total += loss.item() / target.size(0)
+        output = model.predict(input, dataloader)
+
+        if iter % print_every == 0:
+            print_loss_avg = print_loss_total / print_every
+            print_loss_total = 0
+            print ('%s (%d %d%%) %.4f' % (timeSince(start, iter / n_iters),
+                                         iter, iter / n_iters * 100, print_loss_avg))
+
+            avg_bleu = model.test(dataloader)
+
+            with open('weight/record.json') as f:
+                record = json.load(f)
+        
+            if not record.__contains__(model.name()) or record[model.name()] < avg_bleu:
+                model.save()
+                record[model.name()] = avg_bleu
+                with open('weight/record.json', 'w') as f:
+                    f.write(json.dumps(record, indent=2, sort_keys=True))
+
+            print (f'Avg Bleu: {avg_bleu:.2f}%')
+            print ('')
+
+dataloader = DataLoader('dataset/official_test/')
+
+model = Seq2Seq(
+            EncoderRNN(len(dataloader.dict.char2idx), hidden_size).to(device),
+            DecoderRNN(hidden_size, len(dataloader.dict.char2idx)).to(device)
+        )
+
+train(model, dataloader, 1000000, 0.01, nn.CrossEntropyLoss(), 1000)

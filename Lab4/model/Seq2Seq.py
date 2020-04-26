@@ -1,74 +1,55 @@
 import torch
 import torch.nn as nn
-import random
 
-from torch.autograd import Variable
+from utils.func import compute_bleu
+
+from config.config import device, MAX_LENGTH
 
 class Seq2Seq(nn.Module):
 
-    def __init__(self, encoder, decoder, device):
+    def __init__(self, encoder, decoder):
         super(Seq2Seq, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
-        self.device = device
 
-    def forward(self, inputs, targets, teacher_forcing_ratio, optimizer, criterion):
-
-        batch_size = inputs.size(1)
-        hidden = self.encoder.initHidden(batch_size)
-
-        optimizer.zero_grad()
-        loss = 0
-
-        encoder_outputs, encoder_hidden = self.encoder(inputs, hidden)
-
-        decoder_input = self.decoder.initInputs(batch_size)
-        decoder_hidden = encoder_hidden
-
-        use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
-
-        print ("==================================")
-        print ("Training Part")
-        print (use_teacher_forcing)
-        for di in range(targets.size(0)):
-            decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
-            print ("input: ", decoder_input)
-            print ("output: ", decoder_output)
-            topv, topi = decoder_output.topk(1)
-            print ("output_decoder: ", topi)
-            print ("targets: ", targets[di])
-            loss += criterion(decoder_output, targets[di])
+    def forward(self, input, target, use_teacher_forcing):
+        output, hidden = self.encoder(input, self.encoder.initHidden())
+        input = torch.tensor([[0]], device=device)
+        ret = []
+        for i in range(MAX_LENGTH):
+            output, hidden = self.decoder(input, hidden)
             if use_teacher_forcing:
-                decoder_input = targets[di].view(1, -1)
+                if i == target.size(0):
+                    break
+                ret.append(output)
+                input = target[i]
             else:
-                topv, topi = decoder_output.topk(1)
-                decoder_input = topi.view(1, -1)
+                ret.append(output)
+                topv, topi = output.topk(1)
+                input = topi.squeeze().detach()
+                if input.item() == 1:
+                    break
+        return torch.stack(ret)
 
-        loss.backward()
-        optimizer.step()
-        print (loss.item() / targets.size(0))
+    def name(self):
+        return self.encoder.name() + '-' + self.decoder.name()
 
-    def evaluate(self, inputs, max_length):
-        print ("Evaluate part")
-        batch_size = inputs.size(1)
-        hidden = self.encoder.initHidden(batch_size)
-        encoder_outputs, encoder_hidden = self.encoder(inputs, hidden)
+    def load(self):
+        self.load_state_dict(torch.load('weight/' + self.name()))
+        return self
 
-        decoder_input = self.decoder.initInputs(batch_size)
-        decoder_hidden = encoder_hidden
+    def save(self):
+        torch.save(self.state_dict(), 'weight/' + self.name()) 
 
-        decoder_outputs = Variable(torch.zeros(max_length, batch_size, device=self.device, dtype=torch.long))
+    def predict(self, word, dataloader):
+        word_tensor = dataloader.encode(word)
+        output_tensor = self.forward(word_tensor, None, False).squeeze().argmax(dim=1)
+        output = dataloader.decode(output_tensor)
+        return output
 
-        for t in range(max_length):
-            decoder_output, deocder_hidden = self.decoder(decoder_input, decoder_hidden)
-            topv, topi = decoder_output.topk(1)
-
-            print ("input: ", decoder_input)
-            print ("output: ", decoder_output)
-            print ("output_decoder: ", topi)
-
-            decoder_outputs[t] = topi.view(1, -1)
-            decoder_input = topi.view(1, -1).detach()
-            if decoder_input.item() == 1:
-                break
-        return decoder_outputs
+    def test(self, dataloader):
+        total_bleu = 0
+        for p in dataloader.test_data:
+            output = self.predict(p[0], dataloader)
+            total_bleu += compute_bleu(output, p[1])
+        return total_bleu * 100 / len(dataloader.test_data)
