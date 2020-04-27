@@ -8,7 +8,7 @@ from config.config import hidden_size, device
 
 from utils.func import compute_bleu
 
-hidden_size = 256
+hidden_size = 512
 
 dataloader = DataLoader('dataset/official_test/')
 
@@ -17,5 +17,4 @@ model = Seq2Seq(
     DecoderRNN(hidden_size, len(dataloader.dict.char2idx)).to(device)
 ).load()
 
-print (f'Avg Bleu-4: {model.test(dataloader):.2f}%')
-
+print (f'Avg Bleu-4: {model.test(dataloader, True):.2f}%')

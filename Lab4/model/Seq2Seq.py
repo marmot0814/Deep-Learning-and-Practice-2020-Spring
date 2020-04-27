@@ -43,13 +43,18 @@ class Seq2Seq(nn.Module):
 
     def predict(self, word, dataloader):
         word_tensor = dataloader.encode(word)
-        output_tensor = self.forward(word_tensor, None, False).squeeze().argmax(dim=1)
+        output_tensor = self.forward(word_tensor, None, False).argmax(dim=2).view(-1, 1)
         output = dataloader.decode(output_tensor)
         return output
 
-    def test(self, dataloader):
+    def test(self, dataloader, display=False):
         total_bleu = 0
         for p in dataloader.test_data:
             output = self.predict(p[0], dataloader)
             total_bleu += compute_bleu(output, p[1])
+            if not display or output == p[1]:
+                continue
+            print ('<', p[0])
+            print ('=', p[1])
+            print ('>', output)
         return total_bleu * 100 / len(dataloader.test_data)
