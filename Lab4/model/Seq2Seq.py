@@ -49,12 +49,16 @@ class Seq2Seq(nn.Module):
 
     def test(self, dataloader, display=False):
         total_bleu = 0
+        tot, cnt = 0, 0
         for p in dataloader.test_data:
+            tot += 1
             output = self.predict(p[0], dataloader)
             total_bleu += compute_bleu(output, p[1])
             if not display or output == p[1]:
                 continue
+            cnt += 1
             print ('<', p[0])
             print ('=', p[1])
             print ('>', output)
-        return total_bleu * 100 / len(dataloader.test_data)
+            print (f'{tot - cnt} / {tot}')
+        return total_bleu / len(dataloader.test_data)

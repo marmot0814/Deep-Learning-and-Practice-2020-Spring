@@ -15,7 +15,7 @@ from config.config import device, hidden_size, teacher_forcing_ratio, MAX_LENGTH
 from utils.func import timeSince, compute_bleu
 
 
-def train(model, dataloader, n_iters, lr, criterion, print_every=100):
+def train(model, dataloader, n_iters, lr, criterion, print_every=1000):
     start = time.time()
     optimizer = optim.SGD(model.parameters(), lr=lr)
 
@@ -57,6 +57,8 @@ def train(model, dataloader, n_iters, lr, criterion, print_every=100):
 
             print (f'Avg Bleu: {avg_bleu:.2f}%')
             print ('')
+            with open('result1024', 'a+') as f:
+                f.write(f"{print_loss_avg} {avg_bleu}\n")
 
 dataloader = DataLoader('dataset/official_test/')
 
