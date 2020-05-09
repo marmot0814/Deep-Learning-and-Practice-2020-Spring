@@ -1,0 +1,53 @@
+\title{[HW1] KL Divergence between Two Gaussian Distribution}
+\author{0616014 楊政道}
+\maketitle
+\thispagestyle{fancy}
+
+\textbf{\Large{Question}}
+\paragraph{}
+Given the prior $p(z)\sim N(0, I)$ and the posterior approximation $q(z|x;\theta)\sim N(\mu_\theta(x), \Sigma_\theta(x))$, prove that $KL(q(z|x;\theta)\|p(z))$ is tractable; that is, it can be the functions of $\mu_\theta(x)$ and $\Sigma_\theta(x)$, expressed as a closed-form expression. Both dimensions of multivariate Gaussian are $n$ where mean $\mu_\theta(x)$ and covariance matrix $\Sigma_\theta(x)=diag(\sigma_1^2, \dots, \sigma_n^2)$ are functions of $x$ and the parameters $\theta$ of a neural network.
+\vspace{1cm}
+
+\textbf{\Large{Solution}}
+\paragraph{}
+Given two gaussian distribution $p(z)\sim N(0, I)$ and $q(z|x;\theta)\sim N(\mu_\theta(x), \Sigma_\theta(x))$. Evaluate $KL(q(z|x;\theta)\|p(z))$.
+$$KL(q(z|x;\theta)\|p(z)) = -\int q(z|x;\theta)ln[p(z)]dz + \int q(z|x;\theta)ln[q(z|x;\theta)]dz$$
+\paragraph{}
+Evaluate $-\int q(z|x;\theta)ln[p(z)]dz$
+\begin{equation}
+\begin{aligned}
+-\int q(z|x;\theta)ln[p(z)]dz 
+&= -\int q(z|x;\theta)ln\biggl[\frac{1}{\sqrt{(2\pi)^n|I|}}e^{-\frac{1}{2}(z-0)^TI^{-1}(z-0)}\biggr]dz \\
+&= -\int q(z|x;\theta)\biggl[ln(2\pi)^{-\frac{n}{2}}+ln(e^{-\frac{1}{2}z^Tz})\biggr]dz \\
+&= -\int q(z|x;\theta)(-\frac{n}{2}ln(2\pi)-\frac{1}{2}z^Tz)dz \\
+&= \frac{n}{2}ln(2\pi)\int q(z|x;\theta)dz + \frac{1}{2}\int q(z|x;\theta)z^Tz)dz \\
+&= \frac{n}{2}ln(2\pi) + \frac{1}{2}E_{z\sim q(z|x;\theta)}[z^Tz] \\
+&= \frac{n}{2}ln(2\pi) + \frac{1}{2}(|\Sigma_\theta(x)|+\biggl[E_{z\sim q(z|x;\theta)}[z]\biggr]^T\biggl[E_{z\sim q(z|x;\theta)}[z]\biggr]) \\
+&= \frac{n}{2}ln(2\pi) + \frac{1}{2}|\Sigma_\theta(x)|+\frac{1}{2}\mu_\theta(x)^T\mu_\theta(x) \\
+\end{aligned}
+\end{equation}
+\paragraph{}
+Evaluate $\int q(z|x;\theta)ln[q(z|x;\theta)]dz$
+\begin{equation}
+\begin{aligned}
+\int q(z|x;\theta)ln[q(z|x;\theta)]dz 
+&= \int q(z|x;\theta)ln\biggl[ \frac{1}{\sqrt{(2\pi)^n|\Sigma_\theta(x)|}}e^{-\frac{1}{2}(z-\mu_\theta(x))^T\Sigma_\theta^{-1}(x)(z-\mu_\theta(x))} \biggr]dz \\
+&= \int q(z|x;\theta)\biggl(ln(2\pi)^{-\frac{n}{2}}+ln[|\Sigma_\theta(x)|]^{-\frac{1}{2}}+ln\biggl[e^{-\frac{1}{2}(z-\mu_\theta(x))^T\Sigma_\theta^{-1}(x)(z-\mu_\theta(x))} \biggr]\biggr)dz \\
+&= \int q(z|x;\theta)\biggl[-\frac{n}{2}ln(2\pi)-\frac{1}{2}ln[|\Sigma_\theta(x)|]-\frac{1}{2}(z-\mu_\theta(x))^T\Sigma_\theta^{-1}(x)(z-\mu_\theta(x))\biggr]dz \\
+&= -\frac{n}{2}ln(2\pi) - \frac{1}{2}ln[|\Sigma_\theta(x)|]- \frac{1}{2} |\Sigma_\theta^{-1}(x)| \int q(z|x;\theta) \biggl[(z-\mu_\theta(x))^T(z-\mu_\theta(x))\biggr]dz \\
+&= -\frac{n}{2}ln(2\pi) - \frac{1}{2}ln[|\Sigma_\theta(x)|] - \frac{1}{2} |\Sigma_\theta^{-1}(x)| |\Sigma_\theta(x)| \\
+&= -\frac{n}{2}ln(2\pi) - \frac{1}{2}ln[|\Sigma_\theta(x)|] - \frac{1}{2} \\
+\end{aligned}
+\end{equation}
+\paragraph{}
+Combine (1) and (2) to get the closed-form expression of $KL(q(z|x;\theta)\|p(z))$
+\begin{equation}
+\begin{aligned}
+KL(q(z|x;\theta)\|p(z)) 
+&= -\int q(z|x;\theta)ln[p(z)]dz + \int q(z|x;\theta)ln[q(z|x;\theta)]dz \\
+&= \frac{n}{2}ln(2\pi) + \frac{1}{2}|\Sigma_\theta(x)|+\frac{1}{2}\mu_\theta(x)^T\mu_\theta(x) -\frac{n}{2}ln(2\pi) - \frac{1}{2}ln[|\Sigma_\theta(x)|] - \frac{1}{2} \\
+&= \frac{1}{2}|\Sigma_\theta(x)|+\frac{1}{2}\mu_\theta(x)^T\mu_\theta(x) - \frac{1}{2}ln[|\Sigma_\theta(x)|] - \frac{1}{2} \\
+&= \frac{1}{2}\prod_{i=1}^{n}\sigma_i^2+\frac{1}{2}\mu_\theta(x)^T\mu_\theta(x) - \frac{1}{2}ln[\prod_{i=1}^{n}\sigma_i^2] - \frac{1}{2} \\
+&= \frac{1}{2}\prod_{i=1}^{n}\sigma_i^2+\frac{1}{2}\mu_\theta(x)^T\mu_\theta(x) - \sum_{i=1}^{n}ln(\sigma_i) - \frac{1}{2} \\
+\end{aligned}
+\end{equation}
