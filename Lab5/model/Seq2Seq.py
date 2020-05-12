@@ -124,10 +124,7 @@ class Seq2Seq(nn.Module):
             total_bleu += compute_bleu(o, t)
             if not display:
                 continue
-            print ('<', _i)
-            print ('=', t)
-            print ('>', o)
-            print ('----------------------')
+            print (f"input: {_i:20}, target: {t:20}, output: {o:20}")
         return total_bleu / len(test_dataset)
 
     def predict(self, i, i_c, t_c, dataset):
