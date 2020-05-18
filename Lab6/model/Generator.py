@@ -4,28 +4,28 @@ import torch.nn.functional as F
 
 from config import config
 
+from utils.func import weights_init
+
 class Generator(nn.Module):
 
     def __init__(self, d=128):
         super(Generator, self).__init__()
         self.d = d
-        self.conv1_1 = nn.Conv2d(d, d*2, 3, 1, 1)
-        self.conv1_1_bn = nn.BatchNorm2d(d*2)
-        self.conv1_2 = nn.Conv2d(24, d*2, 3, 1, 1)
-        self.conv1_2_bn = nn.BatchNorm2d(d*2)
-        self.conv2 = nn.Conv2d(d*4, d*2, 3, 1, 1)
-        self.conv2_bn = nn.BatchNorm2d(d*2)
-        self.conv3 = nn.Conv2d(d*2, d*2, 3, 1, 1)
-        self.conv3_bn = nn.BatchNorm2d(d*2)
-        self.conv4 = nn.Conv2d(d*2, d, 3, 1, 1)
-        self.conv4_bn = nn.BatchNorm2d(d)
-        self.conv5 = nn.Conv2d(d, d, 3, 1, 1)
-        self.conv5_bn = nn.BatchNorm2d(d)
-        self.conv5 = nn.Conv2d(d, d, 3, 1, 1)
+        self.conv1_1 = nn.Conv2d(d, d*8, 3, 1, 1)
+        self.conv1_1_bn = nn.BatchNorm2d(d*8)
+        self.conv1_2 = nn.Conv2d(24, d*8, 3, 1, 1)
+        self.conv1_2_bn = nn.BatchNorm2d(d*8)
+        self.conv2 = nn.Conv2d(d*16, d*8, 3, 1, 1)
+        self.conv2_bn = nn.BatchNorm2d(d*8)
+        self.conv3 = nn.Conv2d(d*8, d*4, 3, 1, 1)
+        self.conv3_bn = nn.BatchNorm2d(d*4)
+        self.conv4 = nn.Conv2d(d*4, d*2, 3, 1, 1)
+        self.conv4_bn = nn.BatchNorm2d(d*2)
+        self.conv5 = nn.Conv2d(d*2, d, 3, 1, 1)
         self.conv5_bn = nn.BatchNorm2d(d)
         self.conv6 = nn.Conv2d(d, 3, 3, 1, 1)
         self.optim = torch.optim.Adam(self.parameters(), lr=config.lr, betas=(config.beta1, config.beta2))
-        self.criterion = nn.BCELoss()
+        self.apply(weights_init)
 
     def forward(self, labels):
         noise = torch.rand((labels.size(0), self.d, 1, 1)).to(config.device)
@@ -42,7 +42,7 @@ class Generator(nn.Module):
     def Train(self, images, labels, D):
         (batch_size, n_class, _, _), image_sz = labels.size(), images.size(2)
         zeros = torch.zeros(batch_size).to(config.device)
-        g_loss = -self.criterion(D(self.forward(labels), labels.expand(batch_size, n_class, image_sz, image_sz)), zeros)
+        g_loss = -D.Eval(self.forward(labels), labels.expand(batch_size, n_class, image_sz, image_sz)).mean()
         self.optim.zero_grad()
         g_loss.backward(retain_graph=True)
         self.optim.step()

@@ -4,6 +4,8 @@ import torch.nn.functional as F
 
 from config import config
 
+from utils.func import weights_init
+
 class Discriminator(nn.Module):
 
     def __init__(self, d=128):
@@ -12,15 +14,20 @@ class Discriminator(nn.Module):
         self.conv1_2 = nn.Conv2d(24, d//2, 3, 2, 1)
         self.conv2 = nn.Conv2d(d, d*2, 3, 2, 1)
         self.conv2_in = nn.InstanceNorm2d(d*2)
-        self.conv3 = nn.Conv2d(d*2, d*2, 3, 2, 1)
-        self.conv3_in = nn.InstanceNorm2d(d*2)
-        self.conv4 = nn.Conv2d(d*2, d*4, 3, 2, 1)
-        self.conv4_in = nn.InstanceNorm2d(d*4)
-        self.conv5 = nn.Conv2d(d*4, d*4, 3, 2, 1)
-        self.conv5_in = nn.InstanceNorm2d(d*4)
-        self.conv6 = nn.Conv2d(d*4, 1, 2, 1, 0)
+        self.conv3 = nn.Conv2d(d*2, d*4, 3, 2, 1)
+        self.conv3_in = nn.InstanceNorm2d(d*4)
+        self.conv4 = nn.Conv2d(d*4, d*8, 3, 2, 1)
+        self.conv4_in = nn.InstanceNorm2d(d*8)
+        self.conv5 = nn.Conv2d(d*8, d*16, 3, 2, 1)
+        self.conv5_in = nn.InstanceNorm2d(d*16)
+        self.conv6 = nn.Conv2d(d*16, 1, 2, 1, 0)
+
+#       self.conv6_in = nn.InstanceNorm2d(d*32)
+#       self.s = nn.Linear(d*32, 1)
+#       self.c = nn.Linear(d*32, n_class)
+
         self.optim = torch.optim.Adam(self.parameters(), lr=config.lr, betas=(config.beta1, config.beta2))
-        self.criterion = nn.BCELoss()
+        self.apply(weights_init)
 
     def forward(self, images, labels):
         x = F.leaky_relu(self.conv1_1(images), 0.2)
@@ -30,13 +37,14 @@ class Discriminator(nn.Module):
         x = F.leaky_relu(self.conv3_in(self.conv3(x)), 0.2)
         x = F.leaky_relu(self.conv4_in(self.conv4(x)), 0.2)
         x = F.leaky_relu(self.conv5_in(self.conv5(x)), 0.2)
-        x = torch.sigmoid(self.conv6(x))
+        x = self.conv6(x)
         return x.squeeze().view(-1)
 
     def Train(self, real_images, labels, G):
         (batch_size, n_class, _, _), image_sz = labels.size(), real_images.size(2)
         fake_images = G.Eval(labels)
         d_loss = self.Eval(fake_images, labels).mean() - self.Eval(real_images, labels).mean() + self.__gradient_penalty(real_images, fake_images, labels)
+
         self.optim.zero_grad()
         d_loss.backward()
         self.optim.step()

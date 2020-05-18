@@ -16,22 +16,27 @@ dataset = Dataset('dataset/')
 test_dataset = TestDataset('dataset/')
 dataloader = DataLoader(
     dataset = dataset,
-    batch_size = 1024,
+    batch_size = 256,
 )
 
-model = GAN(64).to(device)
+model = GAN(128).to(device)
 evaluator = evaluation_model()
+start_from = 0
+
+
+
+#start_from = 5
+#model = model.load(start_from)
 
 counter = 0
-for epoch in range(100000):
-
-    images = model.Eval(test_dataset.labels)
-    make_grid(images, epoch, int(evaluator.eval(images, test_dataset.labels) * 100))
-    model.save(epoch)
-
-    for (images, labels) in dataloader:
+for epoch in range(start_from, 100000):
+    for batch, (images, labels) in enumerate(dataloader):
         images = images.to(device)
         labels = labels.to(device)
-        model.Train(images, labels, counter)
+        model.Train(images, labels)
         counter += 1
 
+        model.eval()
+        images = model.Eval(test_dataset.labels)
+        make_grid(images, epoch, batch, int(evaluator.eval(images, test_dataset.labels) * 100))
+    model.save(epoch)
