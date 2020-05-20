@@ -18,25 +18,23 @@ dataloader = DataLoader(
     dataset = dataset,
     batch_size = 256,
 )
+torch.autograd.set_detect_anomaly(True)
 
 model = GAN(128).to(device)
 evaluator = evaluation_model()
 start_from = 0
 
+start_from = 5
+model = model.load(start_from - 1)
 
-
-#start_from = 5
-#model = model.load(start_from)
-
-counter = 0
 for epoch in range(start_from, 100000):
     for batch, (images, labels) in enumerate(dataloader):
+        model.train()
         images = images.to(device)
         labels = labels.to(device)
         model.Train(images, labels)
-        counter += 1
 
         model.eval()
-        images = model.Eval(test_dataset.labels)
-        make_grid(images, epoch, batch, int(evaluator.eval(images, test_dataset.labels) * 100))
+        images = model.Eval(test_dataset.labels.to(device))
+        make_grid(images, epoch, batch, int(evaluator.eval(images, test_dataset.onehot_labels) * 100))
     model.save(epoch)

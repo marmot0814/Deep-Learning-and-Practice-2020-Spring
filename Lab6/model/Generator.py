@@ -13,7 +13,7 @@ class Generator(nn.Module):
         self.d = d
         self.conv1_1 = nn.Conv2d(d, d*8, 3, 1, 1)
         self.conv1_1_bn = nn.BatchNorm2d(d*8)
-        self.conv1_2 = nn.Conv2d(24, d*8, 3, 1, 1)
+        self.conv1_2 = nn.Conv2d(48, d*8, 3, 1, 1)
         self.conv1_2_bn = nn.BatchNorm2d(d*8)
         self.conv2 = nn.Conv2d(d*16, d*8, 3, 1, 1)
         self.conv2_bn = nn.BatchNorm2d(d*8)
@@ -24,11 +24,24 @@ class Generator(nn.Module):
         self.conv5 = nn.Conv2d(d*2, d, 3, 1, 1)
         self.conv5_bn = nn.BatchNorm2d(d)
         self.conv6 = nn.Conv2d(d, 3, 3, 1, 1)
-        self.optim = torch.optim.Adam(self.parameters(), lr=config.lr, betas=(config.beta1, config.beta2))
+        self.optim = torch.optim.Adam(self.parameters(), lr=config.lr_g, betas=(config.beta1, config.beta2))
         self.apply(weights_init)
 
-    def forward(self, labels):
-        noise = torch.rand((labels.size(0), self.d, 1, 1)).to(config.device)
+    def forward(self, labels, c_embedding, s_embedding):
+        (batch_sz, n_class) = labels.size()
+
+        labels_embedded = []
+        for label in labels:
+            label_embedded = torch.tensor([]).to(config.device)
+            for i in range(3):
+                label_embedded = torch.cat([label_embedded, c_embedding(label[2 * i])])
+                label_embedded = torch.cat([label_embedded, s_embedding(label[2 * i + 1])])
+            labels_embedded.append(label_embedded)
+        labels = torch.stack(labels_embedded).to(config.device)
+
+        labels = labels.view(batch_sz, 48, 1, 1)
+        noise = torch.rand((batch_sz, self.d, 1, 1)).to(config.device)
+
         x = F.relu(self.conv1_1_bn(self.conv1_1(nn.Upsample(scale_factor=2)(noise))))
         y = F.relu(self.conv1_2_bn(self.conv1_2(nn.Upsample(scale_factor=2)(labels))))
         x = torch.cat([x, y], 1)
@@ -39,15 +52,16 @@ class Generator(nn.Module):
         x = torch.tanh(self.conv6(nn.Upsample(scale_factor=2)(x)))
         return x
 
-    def Train(self, images, labels, D):
-        (batch_size, n_class, _, _), image_sz = labels.size(), images.size(2)
-        zeros = torch.zeros(batch_size).to(config.device)
-        g_loss = -D.Eval(self.forward(labels), labels.expand(batch_size, n_class, image_sz, image_sz)).mean()
+    def Train(self, images, labels, D, c_embedding, s_embedding):
+
+        D.eval()
+        self.train()
+        g_loss = -D.Eval(self.forward(labels, c_embedding, s_embedding), labels, c_embedding, s_embedding).mean()
+
         self.optim.zero_grad()
-        g_loss.backward(retain_graph=True)
+        g_loss.backward()
         self.optim.step()
         return g_loss.item()
 
-    def Eval(self, labels):
-#self.eval()
-        return self.forward(labels)
+    def Eval(self, labels, c_embedding, s_embedding):
+        return self.forward(labels, c_embedding, s_embedding)
