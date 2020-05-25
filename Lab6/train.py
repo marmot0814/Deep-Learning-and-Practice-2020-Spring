@@ -8,33 +8,37 @@ from PIL import Image
 from dataset.dataloader import Dataset, TestDataset
 from utils.evaluator import evaluation_model
 from utils.func import make_grid
-from config.config import device
-from model.GAN import GAN
+from models.GAN import GAN
 
+from tqdm import tqdm
 
 dataset = Dataset('dataset/')
-test_dataset = TestDataset('dataset/')
+
+test_dataset = TestDataset('dataset/test.json')
+
 dataloader = DataLoader(
     dataset = dataset,
-    batch_size = 256,
+    batch_size = 64,
+    shuffle=True,
+    num_workers=8
 )
 torch.autograd.set_detect_anomaly(True)
 
-model = GAN(128).to(device)
+model = GAN()
+
 evaluator = evaluation_model()
-start_from = 0
 
-start_from = 5
-model = model.load(start_from - 1)
-
-for epoch in range(start_from, 100000):
+for epoch in range(0, 100000):
     for batch, (images, labels) in enumerate(dataloader):
         model.train()
-        images = images.to(device)
-        labels = labels.to(device)
-        model.Train(images, labels)
-
+        images = images.permute((1, 0, 2, 3, 4)).cuda()
+        labels = labels.permute((1, 0, 2)).cuda()
+        model.Train(images, labels, epoch, batch)
+        
         model.eval()
-        images = model.Eval(test_dataset.labels.to(device))
-        make_grid(images, epoch, batch, int(evaluator.eval(images, test_dataset.onehot_labels) * 100))
-    model.save(epoch)
+        images = model.Eval(test_dataset.labels)
+        acc = int(evaluator.eval(images, test_dataset.onehot_labels) * 100)
+        make_grid(images, epoch, batch, acc)
+        if acc >= 70:
+            model.save(epoch, batch)
+

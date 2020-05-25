@@ -5,55 +5,44 @@ import PIL
 from PIL import Image
 from torchvision import transforms
 from tqdm import tqdm
-from config.config import device
 import numpy as np
 
 class Dataset(Dataset):
 
     def __init__(self, path):
-        self.labels = torch.load(f'{path}labels.pth').long()
-        self.images = torch.load(f'{path}images.pth')
+        self.labels = torch.load('dataset/labels.pth').long()
+        self.images = torch.load('dataset/images.pth')
 
     def __getitem__(self, index):
-        return self.images[index], self.labels[index]
+        images, labels = [], []
+        for i in range(3):
+            images.append(self.images[index * 3 + i])
+            labels.append(self.labels[index * 3 + i])
+        images = torch.stack(images)
+        labels = torch.stack(labels)
+        return images, labels
         
     def __len__(self):
-        return self.labels.size(0)
+        return self.labels.size(0) // 3
 
 class TestDataset(Dataset):
 
     def __init__(self, path):
-        self.__load_objects(f'{path}objects.json')
-        self.__load_labels(f'{path}test.json')
+        self.__load_objects(f'dataset/objects.json')
+        self.__load_labels(path)
 
     def __load_objects(self, path):
         with open(path, 'r') as f:
             self.objects = json.load(f)
-        self.color, self.shape = {}, {}
-        for key in self.objects.keys():
-            c, s = key.split(' ')
-            if not self.color.__contains__(c):
-                idx = len(self.color) + 1
-                self.color[c] = idx
-            if not self.shape.__contains__(s):
-                idx = len(self.shape) + 1
-                self.shape[s] = idx
 
     def __load_labels(self, path):
         with open(path, 'r') as f:
-            labels, onehot_labels = [], []
+            self.labels, self.onehot_labels = [], []
             for arr in json.load(f):
-                label, ptr = torch.zeros(6), 0
+                label = torch.LongTensor([self.objects[item] for item in arr])
                 onehot_label = torch.zeros(len(self.objects))
-                for item in arr:
-                    c, s = item.split(' ')
-                    label[ptr] = self.color[c]
-                    ptr += 1
-                    label[ptr] = self.shape[s]
-                    ptr += 1
-                    onehot_label[self.objects[item]] = 1
+                onehot_label[label] = 1
 
-                labels.append(label)
-                onehot_labels.append(onehot_label)
-            self.labels = torch.stack(labels).long()
-            self.onehot_labels = torch.stack(onehot_labels)
+                self.labels.append(label)
+                self.onehot_labels.append(onehot_label)
+            self.onehot_labels = torch.stack(self.onehot_labels)
