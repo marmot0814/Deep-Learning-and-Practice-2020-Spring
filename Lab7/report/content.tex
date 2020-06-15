@@ -97,13 +97,15 @@ n-tuple存在的理由為像是2048這種所有可能的數量太龐大, 無法�
 流程為有一個state, 選擇了一個action, 他會到一個after-state, 並且env隨機放一個方塊到一個空位到達下一個state, V(state)的更新就是加上這裡的TD error。
 \subsection{Explain the action selection of V(state) in a diagram.}
 \paragraph{}
-action的選擇為選擇他認為最好的狀態, 衡量一個狀態的好壞使用n-tuple network。
+action的選擇為選擇他認為最好的狀態, 衡量一個狀態的好壞使用n-tuple network。使用的準則為以下方程式。
+$$\pi(s) = argmax_a(R_{t + 1} + E[V(S_{t + 1}|S_t = s, A_t = a])$$
 \subsection{Explain the TD-backup diagram of V(after-state).}
 \paragraph{}
 流程為有一個after-state, env隨機放一個方塊到一個空位到達下一個state, 接下來我選擇了一個action, 他會到另一個after-state, V(after-state)的更新就是加上這裡的TD error。
 \subsection{Explain the action selection of V(after-state) in a diagram.}
 \paragraph{}
-action的選擇為選擇他認為最好的狀態, 衡量一個狀態的好壞使用n-tuple network。
+action的選擇為選擇他認為最好的狀態, 衡量一個狀態的好壞使用n-tuple network。使用的準則為以下方程式。
+$$\pi(s) = argmax_a(V^{af}(S_t^{af}))$$
 \subsection{Explain the mechanism of temporal difference learning.}
 \paragraph{}
 TD learning的機制為對於每個action都會做一次Q值參數更新, 不需要搜尋一段深度才有辦法更新, 更新的依據為現在的state Q值, 下一個state的Q值已經走這步的reward。
@@ -112,15 +114,16 @@ TD learning的機制為對於每個action都會做一次Q值參數更新, 不需
 Bootstrapping為邊更新邊估計, TD learning每次的更新的依據是下一個state的估計值, 因此TD learning有bootstrapping。
 \subsection{Explain whether your training is on-policy or off-policy.}
 \paragraph{}
-這是的training方式為off-policy, 每次都會掃過所有的action, 選擇最好的那個action來執行。
+這次的training方式為on-policy, 每次更新所使用到的data都是由該agent產生的。
 \subsection{Other discussions or improvements.}
 \paragraph{}
 在action選擇上可以多走幾步, 雖然會讓訓練速度變慢, 但是可以讓agent考慮的更完整, 可以讓performance有機會變高。
+\newpage
 \section{Performance}
 \subsection{The 2048-tile win rate in 1000 games.}
 \begin{figure}[!ht]
     \begin{center}
-        \includegraphics[width=8cm]{result.png}
+        \includegraphics[width=15cm]{result.png}
         \caption{Performance}
     \end{center}
 \end{figure}
